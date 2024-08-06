@@ -1,15 +1,18 @@
 import { createContext, useEffect, useRef, useState } from "react";
-import { songsData } from "../assets/frontend-assets/assets";
+// import { songData } from "../assets/frontend-assets/assets";
+import axiosInstance from "../api/axiosInstance";
 
 export const PlayerContext = createContext()
 
 const PlayerContextProvider = ({ children }) => {
-
     const audioRef = useRef()
     const seekBg = useRef()
     const seekBar = useRef()
 
-    const [track, setTrack] = useState(songsData[0])
+    const [songData, setSongData] = useState([])
+    const [albumData, setAlbumData] = useState([])
+
+    const [track, setTrack] = useState(null)
     const [playStatus, setPlayStatus] = useState(false)
     const [time, setTime] = useState({
         currentTime: {
@@ -22,6 +25,29 @@ const PlayerContextProvider = ({ children }) => {
         }
     })
 
+    const fetchSongData = () => {
+        axiosInstance.get('/song/list')
+            .then(data => data.data.songs)
+            .then(data => {
+                setSongData(data)
+                setTrack(data[0])
+            })
+    }
+
+    const fetchAlbumData = () => {
+        axiosInstance.get('/album/list')
+            .then(data => data.data.albums)
+            .then(data => {
+                setAlbumData(data)
+            })
+    }
+
+    useEffect(() => {
+        fetchSongData()
+        fetchAlbumData()
+    }, [])
+
+
     const play = () => {
         audioRef.current.play()
         setPlayStatus(true)
@@ -33,35 +59,36 @@ const PlayerContextProvider = ({ children }) => {
     }
 
     const previous = () => {
-        if (track.id) {
-            setTrack(songsData[track.id - 1])
+        if (track._id) {
+            const songIndex = songData.findIndex(item => item._id === track._id)
+            if (songIndex) {
+                setTrack(songData[songIndex - 1])
+            }
         }
     }
 
     const next = () => {
-        if (track.id < songsData.length - 1) {
-            setTrack(songsData[track.id + 1])
+        const songIndex = songData.findIndex(item => item._id === track._id)
+        if (songIndex < songData.length - 1) {
+            setTrack(songData[songIndex + 1])
         }
     }
 
     const seekSong = e => {
-        audioRef.current.currentTime = ((e.nativeEvent.offsetX / seekBg.current.offsetWidth)*audioRef.current.duration)
+        audioRef.current.currentTime = ((e.nativeEvent.offsetX / seekBg.current.offsetWidth) * audioRef.current.duration)
     }
 
-    // const playWithId = async id => {
-    //     await setTrack(songsData[id])
-    //     audioRef.current.play()
-    //     setPlayStatus(true)
-    // }
+    const playWithId = async id => {
+        const song = songData.find(item => item._id === id)
+        setTrack(song)
+    }
 
     useEffect(() => {
-        audioRef.current.play()
-        setPlayStatus(true)
+        if (track?.file) {
+            audioRef.current.play()
+            setPlayStatus(true)
+        }
     }, [track])
-
-    const playWithId = id => {
-        setTrack(songsData[id])
-    }
 
     useEffect(() => {
         setTimeout(() => {
@@ -96,7 +123,9 @@ const PlayerContextProvider = ({ children }) => {
         playWithId,
         previous,
         next,
-        seekSong
+        seekSong,
+        songData,
+        albumData
     }
 
     return (

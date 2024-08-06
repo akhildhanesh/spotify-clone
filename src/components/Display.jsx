@@ -1,17 +1,19 @@
-import React, { useEffect, useRef } from 'react'
+import React, { useContext, useEffect, useRef, useState } from 'react'
 import { Route, Routes, useLocation } from 'react-router-dom'
 import DisplayHome from './DisplayHome'
 import DisplayAlbum from './DisplayAlbum'
-import { albumsData } from '../assets/frontend-assets/assets'
+import { PlayerContext } from '../context/PlayerContext'
 
 const Display = () => {
+    const { albumData } = useContext(PlayerContext)
+
     const displayRef = useRef()
     const location = useLocation()
     
     const isAlbum = location.pathname.includes("album")
-    const albumId = isAlbum ? location.pathname.slice(-1) : null
+    const albumId = isAlbum ? location.pathname.split('/').slice(-1) : null
 
-    const bgColor = isAlbum && albumsData.find(item => item.id == albumId).bgColor
+    const bgColor = isAlbum && albumData.find(item => item._id == albumId)?.bgColor 
 
     useEffect(() => {
         if (isAlbum) {
